@@ -41,7 +41,7 @@ bool isConflictSerializable(const vector<vector<string> >& schedule) {
     vector<Operation> operations;
     int numTransactions = schedule.size();
 
-    for (int i = 0; i < schedule[0].size(); i++) {
+    for (int i = 1; i < schedule[0].size(); i++) {
         for (int t = 0; t < numTransactions; t++) {
             if (schedule[t][i] != "-") {
                 char type = schedule[t][i][0];
@@ -79,23 +79,27 @@ int main() {
     vector<vector<string> > schedule;
     string line;
 
-    ifstream inputFile("schedule2.txt");
+    ifstream inputFile("schedule3.txt");
     if (!inputFile) {
         cerr << "Error opening file!" << endl;
         return 1;
     }
 
     while (getline(inputFile, line)) {
-        stringstream ss(line);
-        vector<string> transaction;
-        string operation;
+    stringstream ss(line);
+    vector<string> transaction;
+    string operation;
 
-        while (ss >> operation) {
-            transaction.push_back(operation);
-        }
+    while (getline(ss, operation, ',')) {
+        operation.erase(0, operation.find_first_not_of(" \t"));
+        operation.erase(operation.find_last_not_of(" \t") + 1);
+
+        transaction.push_back(operation);
+    }
 
         schedule.push_back(transaction);
     }
+
 
     inputFile.close();
 
