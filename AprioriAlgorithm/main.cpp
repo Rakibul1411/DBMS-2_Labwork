@@ -10,7 +10,7 @@
 
 using namespace std;
 
-vector<set<string>> generateCombinations(const set<string>& items) {
+vector<set<string>> generateCombinationsItemSets(const set<string>& items) {
     vector<set<string>> allCombinations;
     int n = items.size();
     vector<string> itemVec(items.begin(), items.end());
@@ -28,16 +28,30 @@ vector<set<string>> generateCombinations(const set<string>& items) {
 }
 
 
+
+string joinItems(const set<string>& items) {
+    string result;
+    for (const auto& item : items) {
+        if (!result.empty()) {
+            result += ", ";
+        }
+        result += item;
+    }
+    return result;
+}
+
+
+
 void generateAssociationRules(const map<set<string>, int>& frequentItemsets, const map<set<string>, int>& track, double minConfidence, int noTrans) {
     cout << "\nAssociation Rules\n";
-    cout << "-----------------------------------------------\n";
-    cout << "Rule                   | Confidence(%) | Lift\n";
-    cout << "-----------------------------------------------\n";
+    cout << "-----------------------------------------------------\n";
+    cout << "Rule                      | Confidence(%)      | Lift\n";
+    cout << "-----------------------------------------------------\n";
 
     for (const auto& itemset : track) {
         int itemsetSupport = itemset.second;
 
-        vector<set<string>> combinations = generateCombinations(itemset.first);
+        vector<set<string>> combinations = generateCombinationsItemSets(itemset.first);
 
         for (const auto& subset : combinations) {
             set<string> difference;
@@ -54,10 +68,9 @@ void generateAssociationRules(const map<set<string>, int>& frequentItemsets, con
                     double lift = (confidence * noTrans) / (static_cast<double>(differenceSupport));
 
                     if (confidence >= minConfidence) {
-                        for (const auto& item : subset) cout << item << " ";
-                        cout << " -> ";
-                        for (const auto& item : difference) cout << item << " ";
-                        cout << "   " << setw(15) << fixed << setprecision(2) << (confidence * 100)
+                        // Print the rule with commas
+                        cout << "[" << joinItems(subset) << "] ---> [" << joinItems(difference) << "] "
+                             << setw(15) << fixed << setprecision(2) << (confidence * 100)
                              << setw(15) << fixed << setprecision(2) << lift << endl;
                     }
                 }
@@ -67,7 +80,8 @@ void generateAssociationRules(const map<set<string>, int>& frequentItemsets, con
 }
 
 
-void countSupport(map<set<string>, int>& candidates, const vector<set<string>>& transactions) {
+
+void countSupportItemSets(map<set<string>, int>& candidates, const vector<set<string>>& transactions) {
     for (auto& candidate : candidates) {
         candidate.second = 0;
         for (const auto& transaction : transactions) {
@@ -79,7 +93,7 @@ void countSupport(map<set<string>, int>& candidates, const vector<set<string>>& 
 }
 
 
-map<set<string>, int> generateCandidates(const set<set<string>>& frequentItemsets, int size) {
+map<set<string>, int> generateCandidatesItemSets(const set<set<string>>& frequentItemsets, int size) {
     map<set<string>, int> candidates;
     for (auto it1 = frequentItemsets.begin(); it1 != frequentItemsets.end(); ++it1) {
         for (auto it2 = next(it1); it2 != frequentItemsets.end(); ++it2) {
@@ -94,7 +108,7 @@ map<set<string>, int> generateCandidates(const set<set<string>>& frequentItemset
 }
 
 
-map<set<string>, int> filterCandidates(const map<set<string>, int>& candidates, int minSupport) {
+map<set<string>, int> findSatisfiedCandidates(const map<set<string>, int>& candidates, int minSupport) {
     map<set<string>, int> frequentItemsetsWithSupport;
     for (const auto& candidate : candidates) {
         if (candidate.second >= minSupport) {
@@ -105,7 +119,7 @@ map<set<string>, int> filterCandidates(const map<set<string>, int>& candidates, 
 }
 
 
-void apriori(const vector<set<string>>& transactions, int minSupport, int noTrans) {
+void aprioriAlgorithm(const vector<set<string>>& transactions, int minSupport, int noTrans) {
     map<set<string>, int> allFrequentItemsets;
     set<set<string>> frequentItemsets;
     map<set<string>, int> track;
@@ -117,61 +131,59 @@ void apriori(const vector<set<string>>& transactions, int minSupport, int noTran
         }
     }
 
-    cout << "Number of transactions: " << transactions.size() << endl;
-    cout << "Transactions   |   ItemSets" << endl;
-    cout << "-----------------------------" << endl;
+
+    cout << "Transactions   |   ItemSets\n";
+    cout << "-----------------------------\n";
     for (size_t i = 0; i < transactions.size(); ++i) {
-        cout << "T" << i + 1 << ":              [ ";
+        cout << "T" << i + 1 << ":              [";
         for (const auto& item : transactions[i]) {
-            cout << item << " ";
+            cout << item << (item != *transactions[i].rbegin() ? ", " : "");
         }
-        cout << "]" << endl;
+        cout << "]\n";
     }
 
-    cout << "\nStep-1\nC-1\nItemSets   |   Support_Count" << endl;
-    cout << "----------------------------" << endl;
-    for(const auto& item : itemCount){
-        cout << "[" << item.first << "]                  " << item.second << endl;
+    cout << "\nStep-1\nC-1\nItemSets   |   Support_Count\n";
+    cout << "----------------------------\n";
+    for (const auto& item : itemCount) {
+        cout << "[" << item.first << "]" << setw(15) << item.second << endl;
     }
-
     cout << endl;
 
-
-    cout << "\nStep-2\nL-1\nItemSets   |   Support_Count" << endl;
-    cout << "----------------------------" << endl;
+    cout << "\nStep-2\nL-1\nItemSets   |   Support_Count\n";
+    cout << "----------------------------\n";
     for (const auto& item : itemCount) {
         if (item.second >= minSupport) {
             set<string> singleItemSet;
             singleItemSet.insert(item.first);
             frequentItemsets.insert(singleItemSet);
             allFrequentItemsets[singleItemSet] = item.second;
-            cout << "[" << item.first << "]                  " << item.second << endl;
+            cout << "[" << item.first << "]" << setw(15) << item.second << endl;
         }
     }
 
     int k = 2;
     while (!frequentItemsets.empty() && frequentItemsets.size() > 1) {
-        map<set<string>, int> candidates = generateCandidates(frequentItemsets, k);
+        map<set<string>, int> candidates = generateCandidatesItemSets(frequentItemsets, k);
 
-        countSupport(candidates, transactions);
+        countSupportItemSets(candidates, transactions);
 
-        cout << "\nC-" << k << "\nItemSets   |   Support_Count" << endl;
-        cout << "----------------------------" << endl;
+        cout << "\nC-" << k << "\nItemSets   |   Support_Count\n";
+        cout << "----------------------------\n";
         for (const auto& candidate : candidates) {
-            cout << "[ ";
+            cout << "[";
             for (const auto& item : candidate.first) {
-                cout << item << " ";
+                cout << item << (item != *candidate.first.rbegin() ? ", " : "");
             }
             cout << "]         " << candidate.second << endl;
         }
 
-        map<set<string>, int> frequentItemsetsWithSupport = filterCandidates(candidates, minSupport);
+        map<set<string>, int> frequentItemsetsWithSupport = findSatisfiedCandidates(candidates, minSupport);
 
         cout << endl;
 
-        if(!frequentItemsetsWithSupport.empty()) {
-            cout << "\nStep-" << k+1 << "\nL-" << k << "\nItemSets   |   Support_Count" << endl;
-            cout << "----------------------------" << endl;
+        if (!frequentItemsetsWithSupport.empty()) {
+            cout << "\nStep-" << k + 1 << "\nL-" << k << "\nItemSets   |   Support_Count\n";
+            cout << "----------------------------\n";
 
             frequentItemsets.clear();
             track.clear();
@@ -181,60 +193,37 @@ void apriori(const vector<set<string>>& transactions, int minSupport, int noTran
                 frequentItemsets.insert(itemset.first);
                 allFrequentItemsets[itemset.first] = itemset.second;
 
-                cout << "[ ";
+                cout << "[";
                 for (const auto& item : itemset.first) {
-                    cout << item << " ";
+                    cout << item << (item != *itemset.first.rbegin() ? ", " : "");
                 }
                 cout << "]         " << itemset.second << endl;
             }
-        }
-        else {
+        } else {
             break;
         }
 
         k++;
     }
 
-    cout << "\nItemSets    |    Support_Count" << endl;
-    cout << "-----------------------------" << endl;
-
-    for (const auto& itemset : track) {
-        cout << "[ ";
-
-        for (const auto& item : itemset.first) {
-            cout << item << " ";
-        }
-
-        cout << "]" << setw(20 - itemset.first.size() * 3) << right << itemset.second << endl;
-    }
-
-    cout << endl;
-
-    cout << "\nItemSets    |    Support_Count" << endl;
-    cout << "-----------------------------" << endl;
-
+    cout << "\nItemSets    |    Support_Count\n";
+    cout << "-----------------------------\n";
     for (const auto& itemset : allFrequentItemsets) {
-        cout << "[ ";
-
+        cout << "[";
         for (const auto& item : itemset.first) {
-            cout << item << " ";
+            cout << item << (item != *itemset.first.rbegin() ? ", " : "");
         }
-
-        cout << "]" << setw(20 - itemset.first.size() * 3) << right << itemset.second << endl;
+        // Right-align the support count within a field of 10 characters.
+        cout << "]" << setw(20) << right << itemset.second << endl;
     }
 
-    cout << endl << endl;
-
-    double minConfidence; // New variable for minimum confidence
+    double minConfidence;
     cout << "Enter the Minimum Confidence (0.0 - 1.0): ";
-    cin >> minConfidence; // Input for minimum confidence
-
+    cin >> minConfidence;
     generateAssociationRules(allFrequentItemsets, track, minConfidence, noTrans);
-
 }
 
-
-vector<set<string>> parseInputFile(const string& filename) {
+vector<set<string>> parsingInputFile(const string& filename) {
     ifstream inputFile(filename);
     vector<set<string>> transactions;
     string line;
@@ -270,9 +259,11 @@ int main() {
     cout << "Enter the Minimum Support Count: ";
     cin >> minSupport;
 
-    vector<set<string>> transactions = parseInputFile(filename);
+    cout << endl;
 
-    apriori(transactions, minSupport, transactions.size());
+    vector<set<string>> transactions = parsingInputFile(filename);
+
+    aprioriAlgorithm(transactions, minSupport, transactions.size());
 
     return 0;
 }
