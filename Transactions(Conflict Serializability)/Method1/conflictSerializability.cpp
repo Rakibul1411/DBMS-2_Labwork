@@ -79,7 +79,7 @@ int main() {
     vector<vector<string> > schedule;
     string line;
 
-    ifstream inputFile("schedule3.txt");
+    ifstream inputFile("schedule2.txt");
     if (!inputFile) {
         cerr << "Error opening file!" << endl;
         return 1;
