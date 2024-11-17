@@ -1,0 +1,13 @@
+For MacBook -->
+
+g++ -Xpreprocessor -fopenmp \
+    -I/opt/homebrew/opt/libomp/include \
+    -L/opt/homebrew/opt/libomp/lib \
+    -lomp \
+    -O3 parallel_matching.cpp -o parallel_matching
+
+Then 
+
+./parallel_matching
+
+

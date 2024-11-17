@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "/Users/md.rakibulislam/IIT Life/All Semester in IIT Life/5th Semester/5th Semester Lab Codes/CSE-504/DBMS-2_Lab/Parallel Merge",
+      "program": "/Users/md.rakibulislam/IIT Life/All Semester in IIT Life/5th Semester/5th Semester Lab Codes/CSE-504/DBMS-2_Lab/Parallel Merge/build/Debug/outDebug"
+    }
+  ]
+}
