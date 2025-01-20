@@ -1,0 +1,220 @@
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import KFold
+from sklearn.metrics import confusion_matrix, precision_score, f1_score, fbeta_score
+
+# Load the iris dataset from CSV
+iris = pd.read_csv("IRIS.csv")
+
+# Function to check purity
+def check_purity(data):
+    label_column = data[:, -1]
+    unique_classes = np.unique(label_column)
+    if len(unique_classes) == 1:
+        return True
+    return False
+
+# Function to classify data
+def classify_data(data):
+    label_column = data[:, -1]
+    unique_classes, counts_unique_classes = np.unique(label_column, return_counts=True)
+    classification = unique_classes[counts_unique_classes.argmax()]
+    return classification
+
+# Function to get potential splits
+def get_potential_splits(data):
+    potential_splits = {}
+    _, n_columns = data.shape
+    for column_index in range(n_columns - 1):
+        potential_splits[column_index] = []
+        values = data[:, column_index]
+        unique_values = np.unique(values)
+        for index in range(len(unique_values)):
+            if index != 0:
+                current_value = unique_values[index]
+                previous_value = unique_values[index - 1]
+                potential_split = (current_value + previous_value) / 2
+                potential_splits[column_index].append(potential_split)
+    return potential_splits
+
+# Function to split data
+def split_data(data, split_column, split_value):
+    split_column_values = data[:, split_column]
+    data_below = data[split_column_values <= split_value]
+    data_above = data[split_column_values > split_value]
+    return data_below, data_above
+
+# Function to calculate entropy
+def calculate_entropy(data):
+    label_column = data[:, -1]
+    _, counts = np.unique(label_column, return_counts=True)
+    probabilities = counts / counts.sum()
+    entropy = sum(probabilities * -np.log2(probabilities))
+    return entropy
+
+# Function to calculate overall entropy
+def calculate_overall_entropy(data_below, data_above):
+    n = len(data_below) + len(data_above)
+    p_data_below = len(data_below) / n
+    p_data_above = len(data_above) / n
+    overall_entropy = (p_data_below * calculate_entropy(data_below) + p_data_above * calculate_entropy(data_above))
+    return overall_entropy
+
+# Function to determine the best split
+def determine_best_split(data, potential_splits):
+    overall_entropy = 999
+    for column_index in potential_splits:
+        for value in potential_splits[column_index]:
+            data_below, data_above = split_data(data, split_column=column_index, split_value=value)
+            current_overall_entropy = calculate_overall_entropy(data_below, data_above)
+            if current_overall_entropy <= overall_entropy:
+                overall_entropy = current_overall_entropy
+                best_split_column = column_index
+                best_split_value = value
+    return best_split_column, best_split_value
+
+# Decision tree algorithm
+def decision_tree_algorithm(df, counter=0, min_samples=2, max_depth=5):
+    if counter == 0:
+        global COLUMN_HEADERS
+        COLUMN_HEADERS = df.columns
+        data = df.values
+    else:
+        data = df
+        
+    if (check_purity(data)) or (len(data) < min_samples) or (counter == max_depth):
+        classification = classify_data(data)
+        return classification
+    else:
+        counter += 1
+        potential_splits = get_potential_splits(data)
+        split_column, split_value = determine_best_split(data, potential_splits)
+        data_below, data_above = split_data(data, split_column, split_value)
+        feature_name = COLUMN_HEADERS[split_column]
+        question = "{} <= {}".format(feature_name, split_value)
+        sub_tree = {question: []}
+        yes_answer = decision_tree_algorithm(data_below, counter, min_samples, max_depth)
+        no_answer = decision_tree_algorithm(data_above, counter, min_samples, max_depth)
+        if yes_answer == no_answer:
+            sub_tree = yes_answer
+        else:
+            sub_tree[question].append(yes_answer)
+            sub_tree[question].append(no_answer)
+        return sub_tree
+
+# Function to classify examples
+def classify_example(example, tree):
+    question = list(tree.keys())[0]
+    feature_name, comparison_operator, value = question.split()
+    if example[feature_name] <= float(value):
+        answer = tree[question][0]
+    else:
+        answer = tree[question][1]
+    if not isinstance(answer, dict):
+        return answer
+    else:
+        residual_tree = answer
+        return classify_example(example, residual_tree)
+
+# Function to calculate metrics
+def calculate_metrics(df, tree):
+    df = df.copy()
+    df["classification"] = df.apply(classify_example, axis=1, args=(tree,))
+    y_true = df["species"]
+    y_pred = df["classification"]
+    
+    # Confusion Matrix
+    cm = confusion_matrix(y_true, y_pred, labels=["Iris-setosa", "Iris-versicolor", "Iris-virginica"])
+    print("Confusion Matrix:")
+    print(cm)
+    
+    # Accuracy
+    accuracy = np.mean(y_true == y_pred)
+    print(f"Accuracy: {accuracy * 100:.2f}%")
+    
+    # Precision
+    precision = precision_score(y_true, y_pred, average="weighted")
+    print(f"Precision: {precision:.2f}")
+    
+    # F1 Measure
+    f1 = f1_score(y_true, y_pred, average="weighted")
+    print(f"F1 Measure: {f1:.2f}")
+    
+    # F2 Measure
+    f2 = fbeta_score(y_true, y_pred, beta=2, average="weighted")
+    print(f"F2 Measure: {f2:.2f}")
+    
+    # Distance to Heaven (d2h) using the given formula
+    # Goals: Correctly classify each class (Iris-setosa, Iris-versicolor, Iris-virginica)
+    # Heaven for each goal is 1 (maximize correct classifications)
+    # Normalized values are the proportion of correct predictions for each class
+    n_classes = len(cm)  # Number of classes (goals)
+    normalized_values = []
+    for i in range(n_classes):
+        correct_predictions = cm[i, i]
+        total_samples = np.sum(cm[i, :])
+        normalized_value = correct_predictions / total_samples
+        normalized_values.append(normalized_value)
+    
+    # Calculate Euclidean distance to heaven
+    heaven = [1] * n_classes  # Heaven is [1, 1, 1] for all goals
+    squared_differences = [(heaven[i] - normalized_values[i]) ** 2 for i in range(n_classes)]
+    euclidean_distance = np.sqrt(np.sum(squared_differences))
+    
+    # Normalize d2h by dividing by sqrt(n_classes)
+    d2h = euclidean_distance / np.sqrt(n_classes)
+    print(f"Distance to Heaven (d2h): {d2h:.2f}")
+
+    return accuracy, precision, f1, f2, d2h
+
+# Function to print the decision tree in the desired format
+def print_tree(tree, depth=0, prefix=""):
+    if isinstance(tree, dict):
+        question = list(tree.keys())[0]
+        print("\t" * depth + prefix + question)
+        print_tree(tree[question][0], depth + 1, "[True] ")
+        print_tree(tree[question][1], depth + 1, "[False] ")
+    else:
+        print("\t" * depth + prefix + tree)
+
+# k-Fold Cross-Validation
+def k_fold_cross_validation(dataframe, k):
+    kf = KFold(n_splits=k, shuffle=True)
+    accuracies = []
+    precisions = []
+    f1_scores = []
+    f2_scores = []
+    distances_to_heaven = []
+    
+    for fold, (train_index, test_index) in enumerate(kf.split(dataframe)):
+        train_df = dataframe.iloc[train_index]
+        test_df = dataframe.iloc[test_index]
+        
+        tree = decision_tree_algorithm(train_df, max_depth=3)
+        print(f"\nFold {fold + 1} Decision Tree:")
+        print_tree(tree)
+        
+        accuracy, precision, f1, f2, distance_to_heaven = calculate_metrics(test_df, tree)
+        accuracies.append(accuracy)
+        precisions.append(precision)
+        f1_scores.append(f1)
+        f2_scores.append(f2)
+        distances_to_heaven.append(distance_to_heaven)
+        print("-----------------------------")
+    
+    # Calculate averages
+    avg_accuracy = np.mean(accuracies)
+    avg_precision = np.mean(precisions)
+    avg_f1 = np.mean(f1_scores)
+    avg_f2 = np.mean(f2_scores)
+    avg_distance_to_heaven = np.mean(distances_to_heaven)
+    
+    print("\nAverage Metrics Across All Folds:")
+    print(f"Average Accuracy: {avg_accuracy * 100:.2f}%")
+    print(f"Average Precision: {avg_precision:.2f}")
+    print(f"Average F1 Measure: {avg_f1:.2f}")
+    print(f"Average F2 Measure: {avg_f2:.2f}")
+    print(f"Average Distance to Heaven: {avg_distance_to_heaven:.2f}")
+# Main execution
+k = 5
+k_fold_cross_validation(iris, k)
