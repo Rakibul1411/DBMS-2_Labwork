@@ -2,7 +2,7 @@ import numpy as np
 import imageio
 import matplotlib.pyplot as plt
 
-input_img = "image8.jpeg"
+input_img = "image.jpeg"
 output_img = "detected_skin.jpeg"
 fp = open('threshold.txt', "r")   
 
@@ -32,7 +32,7 @@ for x in range(height):
             
             new_img[x, y, 0] = 255  
             new_img[x, y, 1] = 0   
-            new_img[x, y, 2] = 0   
+            new_img[x, y, 2] = 0
 
 
 # Save the result
