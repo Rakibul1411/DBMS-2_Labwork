@@ -94,7 +94,7 @@ class IntuitiveDecisionTree:
         predictions = self.predict(X)
         return np.mean(predictions == y)
 
-# Example usage:
+
 if __name__ == "__main__":
     # Sample data (features and target labels)
     X = np.array([[2, 3], [4, 5], [7, 8], [6, 1], [3, 4], [1, 2]])
