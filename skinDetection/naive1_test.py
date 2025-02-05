@@ -9,7 +9,7 @@ fp = open('threshold.txt', "r")
 trained_value = np.zeros(shape=(256, 256, 256))
 new_img = imageio.v2.imread(input_img)
 
-# Reading the threshold values from file
+
 for i in range(256):
     for j in range(256):
         for k in range(256):
